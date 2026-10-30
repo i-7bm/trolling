@@ -461,7 +461,7 @@ body::before { background: var(--status-band); }
     <div class="tabs" id="tabs" role="tablist" aria-label="Trolling type">
       <button type="button" class="tab" role="tab" id="tab-live" data-tab="live" aria-controls="panel"><span class="en">Live Bait</span><span class="ar" lang="ar" dir="rtl">طعم حي</span></button>
       <button type="button" class="tab" role="tab" id="tab-hammour" data-tab="hammour" aria-controls="panel"><span class="en">Hammour</span><span class="ar" lang="ar" dir="rtl">هامور</span></button>
-      <button type="button" class="tab" role="tab" id="tab-spoon" data-tab="spoon" aria-controls="panel"><span class="en">Spoon</span><span class="ar" lang="ar" dir="rtl">سبون</span></button>
+      <button type="button" class="tab" role="tab" id="tab-spoon" data-tab="spoon" aria-controls="panel"><span class="en">King Fish</span><span class="ar" lang="ar" dir="rtl">كنعد</span></button>
     </div>
   </div>
 </header>
@@ -1085,7 +1085,21 @@ body::before { background: var(--status-band); }
 </script>
 <script>
   if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => { navigator.serviceWorker.register('./sw.js').catch(() => {}); });
+    // When a new version takes over, reload once so it shows straight away.
+    const hadController = !!navigator.serviceWorker.controller;
+    let reloading = false;
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      if (!hadController || reloading) return;
+      reloading = true;
+      location.reload();
+    });
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('./sw.js').then(reg => {
+        document.addEventListener('visibilitychange', () => {
+          if (document.visibilityState === 'visible') reg.update().catch(() => {});
+        });
+      }).catch(() => {});
+    });
   }
 </script>
 </body>

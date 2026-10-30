@@ -1,9 +1,14 @@
 // Trolling Line Calculator: offline cache. Bump CACHE when the app changes.
-const CACHE = 'trolling-line-v1';
+const CACHE = 'trolling-line-v2';
 const SHELL = ['./', './index.html', './manifest.webmanifest', './icon-180.png', './icon-192.png', './icon-512.png'];
 
 self.addEventListener('install', event => {
-  event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(SHELL)).then(() => self.skipWaiting()));
+  // 'reload' skips the HTTP cache, so a new version never gets stored stale.
+  event.waitUntil(
+    caches.open(CACHE)
+      .then(cache => cache.addAll(SHELL.map(url => new Request(url, { cache: 'reload' }))))
+      .then(() => self.skipWaiting())
+  );
 });
 
 self.addEventListener('activate', event => {
@@ -23,7 +28,7 @@ self.addEventListener('fetch', event => {
   if (!sameOrigin && !isFont) return;
 
   // Serve from the cache straight away, refresh it in the background when online.
-  const fresh = fetch(req).then(res => {
+  const fresh = fetch(sameOrigin ? new Request(req.url, { cache: 'no-cache' }) : req).then(res => {
     if (res && (res.ok || res.type === 'opaque')) {
       const copy = res.clone();
       caches.open(CACHE).then(cache => cache.put(req, copy));
