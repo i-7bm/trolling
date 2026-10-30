@@ -1,0 +1,1092 @@
+<!doctype html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="Trolling line calculator for live bait, hammour and spoon. Board or lead plus depth gives the line out in meters and colors; line out gives the depth.">
+<meta name="theme-color" content="#0A1116">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Trolling">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+<title>Trolling Line Calculator</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Readex+Pro:wght@400;500;600&display=swap">
+<style>
+/* Layout: sticky header with the three trolling tabs over one column of rod cards.
+   Each card = size chips, a two-way pair (line ⇄ depth) and a metered-line strip (1 color = 10 m). */
+:root {
+  --bg: #0A1116;
+  --panel: #111B22;
+  --panel-2: #172430;
+  --rule: #273846;
+  --ink: #EDF2F4;
+  --ink-soft: #95A7B2;
+  --accent: #F6C318;
+  --accent-ink: #1C1600;
+  --accent-ink-soft: rgba(28, 22, 0, 0.72);
+  --accent-ink-rule: rgba(28, 22, 0, 0.28);
+  --accent-text: #F6C318;
+  --warn-bg: #2A1F0E;
+  --warn-rule: #5C4118;
+  --warn-ink: #FFC47E;
+  --focus: #7CC4FF;
+  --track: #1E2C37;
+  --status-band: #0A1116;
+  --seg-1: #E5484D;
+  --seg-2: #2EA46C;
+  --seg-3: #F6C318;
+  --seg-4: #3D8DF5;
+  --seg-5: #A46DF0;
+  --font-display: "Barlow Condensed", "Avenir Next Condensed", "Roboto Condensed", "sans-serif-condensed", "Arial Narrow", sans-serif;
+  --font-ui: "Readex Pro", "Geeza Pro", "Segoe UI", Tahoma, system-ui, sans-serif;
+  color-scheme: dark;
+}
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) {
+    --bg: #ECF1F4;
+    --panel: #FFFFFF;
+    --panel-2: #F3F7F9;
+    --rule: #CFDAE1;
+    --ink: #0B1720;
+    --ink-soft: #4E606B;
+    --accent-text: #875F00;
+    --warn-bg: #FFF2DF;
+    --warn-rule: #EBC086;
+    --warn-ink: #7A4100;
+    --focus: #0B63CE;
+    --track: #DCE5EB;
+    color-scheme: light;
+  }
+}
+:root[data-theme="light"] {
+  --bg: #ECF1F4;
+  --panel: #FFFFFF;
+  --panel-2: #F3F7F9;
+  --rule: #CFDAE1;
+  --ink: #0B1720;
+  --ink-soft: #4E606B;
+  --accent-text: #875F00;
+  --warn-bg: #FFF2DF;
+  --warn-rule: #EBC086;
+  --warn-ink: #7A4100;
+  --focus: #0B63CE;
+  --track: #DCE5EB;
+  color-scheme: light;
+}
+
+* { box-sizing: border-box; }
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-ui);
+  font-size: 15px;
+  line-height: 1.45;
+  -webkit-tap-highlight-color: transparent;
+}
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0 0 auto;
+  height: env(safe-area-inset-top, 0px);
+  z-index: 10;
+  background: var(--bg);
+}
+button, input { font: inherit; color: inherit; }
+button { cursor: pointer; }
+:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
+.ar-line { text-align: left; }
+
+.wrap {
+  width: 100%;
+  max-width: 560px;
+  margin-inline: auto;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+
+/* Header */
+.top {
+  position: sticky;
+  top: env(safe-area-inset-top, 0px);
+  z-index: 5;
+  background: var(--bg);
+  border-bottom: 1px solid var(--rule);
+}
+.top > .wrap { padding-block: 12px 0; }
+.brand { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.brand h1 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 23px;
+  line-height: 1;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  text-wrap: balance;
+}
+.brand-ar { margin: 3px 0 0; font-size: 13px; color: var(--ink-soft); }
+.icon-btn {
+  flex: none;
+  width: 42px;
+  height: 42px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border-radius: 11px;
+  border: 1px solid var(--rule);
+  background: var(--panel);
+}
+.tabs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); margin-top: 10px; }
+.tab {
+  appearance: none;
+  background: none;
+  border: 0;
+  border-bottom: 3px solid transparent;
+  padding: 7px 4px 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  color: var(--ink-soft);
+}
+.tab .en {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 19px;
+  line-height: 1.15;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+.tab .ar { font-size: 12.5px; line-height: 1.3; }
+.tab[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--accent); }
+
+/* Method + speed */
+.method {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+  gap: 12px;
+  padding-block: 18px 14px;
+}
+.method-text { min-width: 0; }
+.method h2 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 32px;
+  line-height: 0.95;
+  letter-spacing: 0.01em;
+  text-transform: uppercase;
+  text-wrap: balance;
+}
+.method .sub { margin: 5px 0 0; color: var(--ink-soft); }
+.method .sub.ar-line { margin-top: 1px; }
+.speed {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+  padding: 8px 12px;
+  border: 1.5px solid var(--rule);
+  border-radius: 12px;
+  text-align: right;
+}
+.speed .v {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 26px;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+.speed .v small { font-size: 15px; font-weight: 600; }
+.speed .k { font-size: 12px; color: var(--ink-soft); font-variant-numeric: tabular-nums; }
+
+/* Unit toggles */
+.units {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px 16px;
+  padding-bottom: 12px;
+}
+.toggle { display: flex; align-items: center; gap: 8px; }
+.lbl, .kicker {
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+.kicker [lang="ar"] { font-size: 13px; letter-spacing: 0; text-transform: none; }
+.opts {
+  display: inline-flex;
+  gap: 2px;
+  padding: 3px;
+  border: 1px solid var(--rule);
+  border-radius: 11px;
+  background: var(--panel);
+}
+.opts button {
+  appearance: none;
+  border: 0;
+  background: none;
+  min-height: 36px;
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-weight: 600;
+  color: var(--ink-soft);
+}
+.opts button[aria-pressed="true"] { background: var(--ink); color: var(--bg); }
+
+.hint { margin: 0 0 14px; font-size: 13.5px; color: var(--ink-soft); }
+.hint .ar-line { display: block; font-size: 14px; }
+
+/* Rod cards */
+.rods { display: flex; flex-direction: column; gap: 14px; }
+.rod {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 14px;
+  background: var(--panel);
+  border: 1px solid var(--rule);
+  border-radius: 16px;
+}
+.rod-head { display: flex; align-items: center; justify-content: space-between; min-height: 36px; }
+.rod-title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 21px;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+.rod-remove {
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border-radius: 10px;
+  border: 1px solid var(--rule);
+  background: transparent;
+  color: var(--ink-soft);
+}
+.chips {
+  display: grid;
+  grid-template-columns: repeat(var(--n), minmax(0, 1fr));
+  gap: 6px;
+  margin-top: 7px;
+}
+.chip {
+  min-height: 46px;
+  padding: 0;
+  border-radius: 10px;
+  border: 1.5px solid var(--rule);
+  background: var(--panel-2);
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 22px;
+  font-variant-numeric: tabular-nums;
+}
+.chip[aria-pressed="true"] { background: var(--ink); border-color: var(--ink); color: var(--bg); }
+
+/* Two-way pair */
+.pair {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 22px minmax(0, 1fr);
+  gap: 6px;
+}
+.field {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 10px 11px 12px;
+  border: 1.5px solid var(--rule);
+  border-radius: 13px;
+  background: var(--panel-2);
+  transition: background-color 0.18s ease, border-color 0.18s ease, color 0.18s ease;
+}
+.field.is-result { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.field.is-result .kicker,
+.field.is-result .alt { color: var(--accent-ink-soft); }
+.field.is-none { border-style: dashed; }
+.entry { display: flex; align-items: baseline; gap: 5px; margin-top: 2px; }
+.entry input {
+  appearance: none;
+  -webkit-appearance: none;
+  flex: 1 1 auto;
+  width: 100%;
+  min-width: 0;
+  margin: 0;
+  padding: 0 0 2px;
+  border: 0;
+  border-bottom: 2px solid var(--rule);
+  border-radius: 0;
+  background: transparent;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 42px;
+  line-height: 1.05;
+  font-variant-numeric: tabular-nums;
+}
+.entry input::placeholder { color: currentColor; opacity: 0.35; }
+.entry input:focus-visible { outline: none; border-bottom-color: var(--focus); }
+.field.is-result .entry input { border-bottom-color: var(--accent-ink-rule); }
+.field.is-result .entry input:focus-visible { border-bottom-color: var(--accent-ink); }
+.unit { flex: none; font-size: 16px; font-weight: 600; }
+.entry-colors { flex-direction: column; align-items: stretch; gap: 6px; }
+.entry-colors .sub { display: flex; align-items: baseline; gap: 5px; }
+.entry-colors input { font-size: 32px; }
+.entry-colors .unit { font-size: 13px; }
+.alt {
+  margin: 3px 0 0;
+  font-size: 13px;
+  line-height: 1.3;
+  color: var(--ink-soft);
+  font-variant-numeric: tabular-nums;
+}
+.alt.ar-line { margin: 0; font-size: 14.5px; }
+.alt:empty { display: none; }
+.swap { display: grid; place-items: center; color: var(--ink-soft); }
+.swap svg { transition: transform 0.2s ease; }
+.swap.to-right svg { transform: scaleX(-1); }
+
+/* Metered line strip */
+.strip {
+  display: grid;
+  grid-template-columns: repeat(var(--n), minmax(0, 1fr));
+  gap: 3px;
+  height: 14px;
+}
+.cell { position: relative; overflow: hidden; border-radius: 3px; background: var(--track); }
+.cell i {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: calc(var(--f, 0) * 100%);
+  background: var(--c);
+  transition: width 0.25s ease;
+}
+.strip-scale {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 5px;
+  font-size: 12px;
+  color: var(--ink-soft);
+  font-variant-numeric: tabular-nums;
+}
+
+.note {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 10px 12px;
+  border: 1px solid var(--warn-rule);
+  border-radius: 12px;
+  background: var(--warn-bg);
+  color: var(--warn-ink);
+  font-size: 14px;
+}
+.note p { margin: 0; }
+.note button {
+  min-height: 42px;
+  padding: 8px 14px;
+  border: 0;
+  border-radius: 10px;
+  background: var(--accent);
+  color: var(--accent-ink);
+  font-weight: 600;
+  text-align: left;
+}
+
+.add {
+  width: 100%;
+  min-height: 54px;
+  margin-top: 14px;
+  border: 1.5px dashed var(--rule);
+  border-radius: 14px;
+  background: transparent;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 20px;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+
+.foot {
+  padding-block: 22px 30px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--ink-soft);
+}
+.foot p { margin: 0; max-width: 62ch; }
+.foot a { color: var(--accent-text); }
+
+@media (max-width: 359px) {
+  .entry input { font-size: 36px; }
+  .entry-colors input { font-size: 28px; }
+  .method h2 { font-size: 28px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition: none !important; }
+}
+
+/* Standalone web app: clear the iPhone status bar and home indicator */
+:root { padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
+body { margin: 0; }
+img { max-width: 100%; }
+[hidden] { display: none !important; }
+body::before { background: var(--status-band); }
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="wrap">
+    <div class="brand">
+      <div>
+        <h1>Trolling Line Calculator</h1>
+        <p class="brand-ar ar-line" lang="ar" dir="rtl">حاسبة خيط الترولنق</p>
+      </div>
+      <button type="button" class="icon-btn" id="theme-btn" aria-label="Switch theme"></button>
+    </div>
+    <div class="tabs" id="tabs" role="tablist" aria-label="Trolling type">
+      <button type="button" class="tab" role="tab" id="tab-live" data-tab="live" aria-controls="panel"><span class="en">Live Bait</span><span class="ar" lang="ar" dir="rtl">طعم حي</span></button>
+      <button type="button" class="tab" role="tab" id="tab-hammour" data-tab="hammour" aria-controls="panel"><span class="en">Hammour</span><span class="ar" lang="ar" dir="rtl">هامور</span></button>
+      <button type="button" class="tab" role="tab" id="tab-spoon" data-tab="spoon" aria-controls="panel"><span class="en">Spoon</span><span class="ar" lang="ar" dir="rtl">سبون</span></button>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+  <div id="panel" role="tabpanel" aria-labelledby="tab-spoon">
+    <section class="method" id="method"></section>
+    <div class="units" id="units">
+      <div class="toggle">
+        <span class="lbl" id="lbl-line">Line</span>
+        <div class="opts" role="group" aria-labelledby="lbl-line">
+          <button type="button" data-unit="line:m">Meters</button>
+          <button type="button" data-unit="line:colors">Colors</button>
+        </div>
+      </div>
+      <div class="toggle">
+        <span class="lbl" id="lbl-depth">Depth</span>
+        <div class="opts" role="group" aria-labelledby="lbl-depth">
+          <button type="button" data-unit="depth:m">m</button>
+          <button type="button" data-unit="depth:ft">ft</button>
+        </div>
+      </div>
+    </div>
+    <p class="hint">Type the depth to get the line, or type the line to get the depth. The yellow box is the answer.<span class="ar-line" lang="ar" dir="rtl">اكتب العمق يطلع لك الخيط، أو اكتب الخيط يطلع لك العمق.</span></p>
+    <div class="rods" id="rods"></div>
+    <button type="button" class="add" id="add-rod">+ Add rod</button>
+  </div>
+</main>
+
+<footer class="wrap foot">
+  <p>Depths are worked out between the chart rows and hold only at the chart speed. 1 color = 10 m of metered line.</p>
+  <p>Everything runs on your phone. After the first open it works with no signal.</p>
+  <p>Data: <a href="https://www.instagram.com/alrashed_trolling/" target="_blank" rel="noopener">@alrashed_trolling</a></p>
+</footer>
+
+<script>
+(() => {
+  'use strict';
+
+  /* CALC-START */
+  const FT = 0.3048; // metres in one foot
+
+  // Depth in FEET for each line-out row (metres). Columns follow `sizes`.
+  const METHODS = {
+    live: {
+      species: 'King Mackerel', speciesAr: 'كنعد',
+      method: 'Live bait', methodAr: 'طعم حي',
+      speedKmh: '1.5–4.5', speedKn: '0.8–2.4',
+      sizeLabel: 'Lead weight', sizeLabelAr: 'بلد', sizeNoun: 'Lead',
+      sizes: [4, 6, 8, 10, 12, 14, 16],
+      rows: [10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 110, 120, 130],
+      ft: [
+        [5.5, 6, 7.5, 8.5, 11, 13.5, 16],
+        [11, 12, 15, 17, 22, 27, 32],
+        [16.5, 18, 22.5, 25.5, 33, 40.5, 48],
+        [22, 24, 30, 34, 44, 54, 64],
+        [27, 30, 37.5, 42.5, 55, 67.5, 80],
+        [33, 36, 45, 51, 66, 81, 96],
+        [38.5, 42, 52.5, 59.5, 77, 94.5, 112],
+        [44, 48, 60, 68, 88, 108, 128],
+        [49.5, 54, 67.5, 76.5, 99, 121.5, 144],
+        [55, 60, 75, 85, 110, 135, 160],
+        [60.5, 66, 82.5, 93.5, 121, 148.5, 176],
+        [66, 72, 90, 102, 132, 162, 192],
+        [71.5, 78, 97.5, 110.5, 143, 175.5, 208]
+      ]
+    },
+    hammour: {
+      species: 'Hammour', speciesAr: 'هامور',
+      method: 'Yo-Zuri board lures', methodAr: 'بورد',
+      speedKmh: '6–7', speedKn: '3.2–3.8',
+      sizeLabel: 'Board size', sizeLabelAr: 'بورد', sizeNoun: 'Board',
+      sizes: [9, 10, 11, 12],
+      rows: [10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70],
+      ft: [
+        [15, 19, 18, 20],
+        [24, 25, 24, 27],
+        [29, 32, 31, 36],
+        [32, 38, 33, 42],
+        [37, 41, 41, 48],
+        [39, 46, 43, 53],
+        [40, 48, 48, 55],
+        [41.5, 51, 52, 59],
+        [43, 54, 53, 63],
+        [43.5, 56, 55, 63.5],
+        [44, 58, 58, 64],
+        [44.5, 59, 61, 68],
+        [45, 60, 64, 72]
+      ]
+    },
+    spoon: {
+      species: 'King Mackerel', speciesAr: 'كنعد',
+      method: 'Yo-Zuri board spoon', methodAr: 'بورد سبون',
+      speedKmh: '11–12', speedKn: '5.9–6.5',
+      sizeLabel: 'Board size', sizeLabelAr: 'بورد', sizeNoun: 'Board',
+      sizes: [6, 7, 8, 9, 10, 11, 12],
+      rows: [10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70],
+      ft: [
+        [12, 12, 15, 16, 18, 20, 21],
+        [15, 17, 20, 23, 25, 27, 28],
+        [18, 22, 26, 30, 32, 35, 39],
+        [20, 24, 30, 35, 40, 41, 45],
+        [23, 27, 35, 40, 45, 48, 51],
+        [24.5, 28, 37, 43, 49, 52, 55],
+        [25, 31, 40, 47, 54, 55, 62],
+        [26.5, 33, 42, 49, 56, 59, 69],
+        [28, 35, 44, 54, 62, 62, 72],
+        [29, 37, 46, 56, 64, 67, 77],
+        [30, 39, 47, 58, 66, 70, 79],
+        [31, 40, 49, 60, 70, 72, 83],
+        [32, 42, 51, 64, 73, 76, 87]
+      ]
+    }
+  };
+
+  const AR_COLORS = ['', 'لون', 'لونين', 'ثلاثة ألوان', 'أربعة ألوان', 'خمسة ألوان', 'ستة ألوان', 'سبعة ألوان',
+    'ثمانية ألوان', 'تسعة ألوان', 'عشرة ألوان', 'أحد عشر لون', 'اثنا عشر لون', 'ثلاثة عشر لون'];
+
+  // Depth column for one board/lead, with 0 m line = 0 depth in front.
+  function column(m, size) {
+    const j = m.sizes.indexOf(size);
+    return [0].concat(m.ft.map(row => row[j]));
+  }
+
+  // Target depth (ft) -> line out (m), linear between chart rows.
+  function lineForDepth(m, size, targetFt) {
+    if (!(targetFt > 0)) return null;
+    const L = [0].concat(m.rows);
+    const D = column(m, size);
+    if (targetFt > D[D.length - 1] + 1e-9) return { over: true };
+    for (let i = 0; i < D.length - 1; i++) {
+      if (targetFt <= D[i + 1] + 1e-9) {
+        const t = (targetFt - D[i]) / (D[i + 1] - D[i]);
+        return { line: L[i] + t * (L[i + 1] - L[i]) };
+      }
+    }
+    return { over: true };
+  }
+
+  // Line out (m) -> depth (ft), linear between chart rows.
+  function depthForLine(m, size, lineM) {
+    if (!(lineM > 0)) return null;
+    const L = [0].concat(m.rows);
+    const D = column(m, size);
+    if (lineM > L[L.length - 1] + 1e-9) return { over: true };
+    for (let i = 0; i < L.length - 1; i++) {
+      if (lineM <= L[i + 1] + 1e-9) {
+        const t = (lineM - L[i]) / (L[i + 1] - L[i]);
+        return { ft: D[i] + t * (D[i + 1] - D[i]) };
+      }
+    }
+    return { over: true };
+  }
+
+  // One rod: whichever field was typed last drives the other.
+  function solve(m, rod) {
+    const maxRow = m.rows[m.rows.length - 1];
+    if (rod.driver === 'line') {
+      const r = depthForLine(m, rod.size, rod.lineM);
+      if (!r) return { kind: 'empty' };
+      if (r.over) return { kind: 'too-long', maxRow };
+      return { kind: 'ok', line: rod.lineM, depthM: r.ft * FT };
+    }
+    const targetFt = rod.depthM / FT;
+    const r = lineForDepth(m, rod.size, targetFt);
+    if (!r) return { kind: 'empty' };
+    if (r.over) {
+      let sug = null;
+      for (const s of m.sizes) {
+        const rr = lineForDepth(m, s, targetFt);
+        if (rr && !rr.over) { sug = { size: s, line: rr.line }; break; }
+      }
+      const col = column(m, rod.size);
+      return { kind: 'too-deep', maxFt: col[col.length - 1], maxRow, sug };
+    }
+    return { kind: 'ok', line: r.line, depthM: rod.depthM };
+  }
+
+  function round1(x) { return Math.round(x * 10) / 10; }
+  function trim1(x) { const r = round1(x); return Number.isInteger(r) ? String(r) : r.toFixed(1); }
+  function fixed1(x) { return round1(x).toFixed(1); }
+  function floor1(x) { const r = Math.floor(x * 10 + 1e-6) / 10; return Number.isInteger(r) ? String(r) : r.toFixed(1); }
+
+  function splitColors(meters) {
+    const total = round1(meters);
+    const c = Math.floor(total / 10 + 1e-9);
+    return { c, e: round1(total - c * 10) };
+  }
+  function colorsEn(meters) {
+    const { c, e } = splitColors(meters);
+    if (c === 0) return trim1(e) + ' m · less than 1 color';
+    const words = c === 1 ? '1 color' : c + ' colors';
+    return e > 0 ? words + ' + ' + trim1(e) + ' m' : words;
+  }
+  function colorsAr(meters) {
+    const { c, e } = splitColors(meters);
+    if (c === 0) return trim1(e) + ' م · أقل من لون';
+    const name = AR_COLORS[c] || (c + ' ألوان');
+    return e > 0 ? name + ' + ' + trim1(e) + ' م' : name;
+  }
+
+  // Accepts 6.5, 6,5 and Arabic-Indic digits from an Arabic keyboard.
+  function parseNum(s) {
+    if (s == null) return null;
+    const t = String(s).trim()
+      .replace(/[٠-٩]/g, ch => String(ch.charCodeAt(0) - 0x0660))
+      .replace(/[۰-۹]/g, ch => String(ch.charCodeAt(0) - 0x06F0))
+      .replace(/[٫,،]/g, '.');
+    if (t === '' || t === '.') return null;
+    const v = parseFloat(t);
+    return Number.isFinite(v) ? v : null;
+  }
+  /* CALC-END */
+
+  const ORDER = ['live', 'hammour', 'spoon'];
+  const KEY = 'trolling-line-calculator:v1';
+  const THEME_KEY = 'trolling-line-calculator:theme';
+  const MAX_RODS = 8;
+  const reduceMotion = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+
+  const ICON = {
+    arrow: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 12H5"/><path d="M11 6l-6 6 6 6"/></svg>',
+    x: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>',
+    sun: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5.3 5.3l1.6 1.6M17.1 17.1l1.6 1.6M5.3 18.7l1.6-1.6M17.1 6.9l1.6-1.6"/></svg>',
+    moon: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.5 14.2A8.5 8.5 0 1 1 9.8 3.5a6.8 6.8 0 0 0 10.7 10.7z"/></svg>'
+  };
+
+  function defaults() {
+    return {
+      tab: 'spoon',
+      lineUnit: 'm',
+      depthUnit: 'm',
+      rods: {
+        live: [
+          { size: 8, driver: 'depth', depthM: 10, lineM: null },
+          { size: 12, driver: 'line', depthM: null, lineM: 35 }
+        ],
+        hammour: [
+          { size: 10, driver: 'depth', depthM: 15, lineM: null },
+          { size: 12, driver: 'line', depthM: null, lineM: 40 }
+        ],
+        spoon: [
+          { size: 6, driver: 'depth', depthM: 6, lineM: null },
+          { size: 9, driver: 'line', depthM: null, lineM: 30 }
+        ]
+      }
+    };
+  }
+  function numOrNull(v) { return typeof v === 'number' && Number.isFinite(v) ? v : null; }
+  function load() {
+    let saved = null;
+    try { saved = JSON.parse(localStorage.getItem(KEY) || 'null'); } catch (e) { saved = null; }
+    const d = defaults();
+    if (!saved || typeof saved !== 'object') return d;
+    const out = {
+      tab: ORDER.indexOf(saved.tab) >= 0 ? saved.tab : d.tab,
+      lineUnit: saved.lineUnit === 'colors' ? 'colors' : 'm',
+      depthUnit: saved.depthUnit === 'ft' ? 'ft' : 'm',
+      rods: {}
+    };
+    ORDER.forEach(k => {
+      const m = METHODS[k];
+      const list = saved.rods && Array.isArray(saved.rods[k]) ? saved.rods[k] : [];
+      const clean = list.slice(0, MAX_RODS).filter(r => r && typeof r === 'object').map(r => ({
+        size: m.sizes.indexOf(r.size) >= 0 ? r.size : m.sizes[0],
+        driver: r.driver === 'line' ? 'line' : 'depth',
+        depthM: numOrNull(r.depthM),
+        lineM: numOrNull(r.lineM)
+      }));
+      out.rods[k] = clean.length ? clean : d.rods[k];
+    });
+    return out;
+  }
+  const state = load();
+  function save() {
+    try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) { /* storage blocked: keep working */ }
+  }
+
+  const $ = id => document.getElementById(id);
+  const ui = {
+    tabs: $('tabs'), panel: $('panel'), method: $('method'), units: $('units'),
+    rods: $('rods'), add: $('add-rod'), theme: $('theme-btn')
+  };
+
+  function toUnit(m) { return state.depthUnit === 'ft' ? m / FT : m; }
+  function fromUnit(v) { return state.depthUnit === 'ft' ? v * FT : v; }
+
+  function renderTabs() {
+    ui.tabs.querySelectorAll('[role="tab"]').forEach(b => {
+      const on = b.dataset.tab === state.tab;
+      b.setAttribute('aria-selected', on ? 'true' : 'false');
+      b.tabIndex = on ? 0 : -1;
+    });
+    ui.panel.setAttribute('aria-labelledby', 'tab-' + state.tab);
+  }
+
+  function renderMethod() {
+    const m = METHODS[state.tab];
+    ui.method.innerHTML = `
+      <div class="method-text">
+        <h2>${m.species}</h2>
+        <p class="sub">${m.method}</p>
+        <p class="sub ar-line" lang="ar" dir="rtl">${m.speciesAr} – ${m.methodAr}</p>
+      </div>
+      <div class="speed">
+        <span class="k">Chart speed · <span lang="ar" dir="rtl">السرعة</span></span>
+        <span class="v">${m.speedKmh}<small> km/h</small></span>
+        <span class="k">≈ ${m.speedKn} kn</span>
+      </div>`;
+  }
+
+  function renderUnits() {
+    ui.units.querySelectorAll('button[data-unit]').forEach(b => {
+      const parts = b.dataset.unit.split(':');
+      const on = (parts[0] === 'line' ? state.lineUnit : state.depthUnit) === parts[1];
+      b.setAttribute('aria-pressed', on ? 'true' : 'false');
+    });
+  }
+
+  function rodHTML(m, rod, i, count) {
+    const t = state.tab;
+    const chips = m.sizes.map(s =>
+      `<button type="button" class="chip" data-act="size" data-rod="${i}" data-size="${s}" aria-pressed="${rod.size === s}">${s}</button>`
+    ).join('');
+    const colorsMode = state.lineUnit === 'colors';
+    const lineId = colorsMode ? `lc-${t}-${i}` : `lm-${t}-${i}`;
+    const lineEntry = colorsMode
+      ? `<div class="entry entry-colors">
+           <div class="sub"><input id="lc-${t}-${i}" data-in="lc" data-rod="${i}" type="text" inputmode="numeric" autocomplete="off" enterkeyhint="done"><span class="unit">colors</span></div>
+           <div class="sub"><span class="unit">+</span><input id="le-${t}-${i}" data-in="le" data-rod="${i}" type="text" inputmode="decimal" autocomplete="off" enterkeyhint="done" aria-label="Extra meters"><span class="unit">m</span></div>
+         </div>`
+      : `<div class="entry"><input id="lm-${t}-${i}" data-in="lm" data-rod="${i}" type="text" inputmode="decimal" autocomplete="off" enterkeyhint="done"><span class="unit">m</span></div>`;
+    const maxRow = m.rows[m.rows.length - 1];
+    const n = maxRow / 10;
+    let cells = '';
+    for (let k = 0; k < n; k++) cells += `<span class="cell" style="--c: var(--seg-${(k % 5) + 1})"><i></i></span>`;
+    return `
+      <article class="rod" data-rod="${i}" aria-labelledby="rod-${t}-${i}">
+        <div class="rod-head">
+          <h3 class="rod-title" id="rod-${t}-${i}">Rod ${i + 1}</h3>
+          ${count > 1 ? `<button type="button" class="rod-remove" data-act="remove" data-rod="${i}" aria-label="Remove rod ${i + 1}">${ICON.x}</button>` : ''}
+        </div>
+        <div class="size">
+          <span class="kicker" id="size-${t}-${i}">${m.sizeLabel} · <span lang="ar" dir="rtl">${m.sizeLabelAr}</span></span>
+          <div class="chips" role="group" aria-labelledby="size-${t}-${i}" style="--n: ${m.sizes.length}">${chips}</div>
+        </div>
+        <div class="pair">
+          <div class="field" data-field="line">
+            <label class="kicker" for="${lineId}">Line · <span lang="ar" dir="rtl">الخيط</span></label>
+            ${lineEntry}
+            <p class="alt" data-out="line-alt"></p>
+            <p class="alt ar-line" lang="ar" dir="rtl" data-out="line-ar"></p>
+          </div>
+          <div class="swap">${ICON.arrow}</div>
+          <div class="field" data-field="depth">
+            <label class="kicker" for="d-${t}-${i}">Depth · <span lang="ar" dir="rtl">العمق</span></label>
+            <div class="entry"><input id="d-${t}-${i}" data-in="d" data-rod="${i}" type="text" inputmode="decimal" autocomplete="off" enterkeyhint="done"><span class="unit">${state.depthUnit}</span></div>
+            <p class="alt" data-out="depth-alt"></p>
+          </div>
+        </div>
+        <div class="line-strip" aria-hidden="true">
+          <div class="strip" style="--n: ${n}">${cells}</div>
+          <div class="strip-scale"><span>0</span><span>1 color = 10 m</span><span>${maxRow} m</span></div>
+        </div>
+        <div class="note" data-out="note" hidden></div>
+      </article>`;
+  }
+
+  function writeLine(card, meters, isDriver) {
+    const ph = isDriver ? '0' : '—';
+    if (state.lineUnit === 'colors') {
+      const c = card.querySelector('[data-in="lc"]');
+      const e = card.querySelector('[data-in="le"]');
+      if (meters == null || !(meters > 0)) { c.value = ''; e.value = ''; }
+      else { const s = splitColors(meters); c.value = String(s.c); e.value = trim1(s.e); }
+      c.placeholder = ph;
+      e.placeholder = ph;
+    } else {
+      const lm = card.querySelector('[data-in="lm"]');
+      lm.value = meters == null ? '' : trim1(meters);
+      lm.placeholder = ph;
+    }
+  }
+
+  // Refresh one card. While someone types, their own field is left alone.
+  function updateRod(i, typing) {
+    const m = METHODS[state.tab];
+    const rod = state.rods[state.tab][i];
+    const card = ui.rods.querySelector(`.rod[data-rod="${i}"]`);
+    if (!card || !rod) return;
+    const res = solve(m, rod);
+    const ok = res.kind === 'ok';
+    const lineDriver = rod.driver === 'line';
+    const lineField = card.querySelector('[data-field="line"]');
+    const depthField = card.querySelector('[data-field="depth"]');
+
+    lineField.classList.toggle('is-result', !lineDriver && ok);
+    lineField.classList.toggle('is-none', !lineDriver && !ok);
+    depthField.classList.toggle('is-result', lineDriver && ok);
+    depthField.classList.toggle('is-none', lineDriver && !ok);
+    card.querySelector('.swap').classList.toggle('to-right', lineDriver);
+
+    const typedLine = rod.lineM != null && rod.lineM > 0 ? rod.lineM : null;
+    const typedDepth = rod.depthM != null && rod.depthM > 0 ? rod.depthM : null;
+    const lineShown = lineDriver ? typedLine : (ok ? Math.max(1, Math.round(res.line)) : null);
+    const depthShownM = lineDriver ? (ok ? res.depthM : null) : typedDepth;
+
+    if (!(typing && lineDriver)) writeLine(card, lineDriver ? rod.lineM : lineShown, lineDriver);
+    if (!(typing && !lineDriver)) {
+      const d = card.querySelector('[data-in="d"]');
+      if (lineDriver) d.value = depthShownM == null ? '' : fixed1(toUnit(depthShownM));
+      else d.value = rod.depthM == null ? '' : trim1(toUnit(rod.depthM));
+      d.placeholder = lineDriver ? '—' : '0';
+    }
+
+    const lineAlt = card.querySelector('[data-out="line-alt"]');
+    const lineAr = card.querySelector('[data-out="line-ar"]');
+    if (lineShown == null) {
+      lineAlt.textContent = '';
+      lineAr.textContent = '';
+    } else if (state.lineUnit === 'colors') {
+      lineAlt.textContent = '= ' + trim1(lineShown) + ' m';
+      lineAr.textContent = colorsAr(lineShown);
+    } else {
+      lineAlt.textContent = colorsEn(lineShown);
+      lineAr.textContent = colorsAr(lineShown);
+    }
+
+    const depthAlt = card.querySelector('[data-out="depth-alt"]');
+    depthAlt.textContent = depthShownM == null ? ''
+      : state.depthUnit === 'm' ? fixed1(depthShownM / FT) + ' ft' : fixed1(depthShownM) + ' m';
+
+    const fill = lineShown == null ? 0 : lineShown;
+    card.querySelectorAll('.cell i').forEach((node, k) => {
+      node.style.setProperty('--f', String(Math.max(0, Math.min(1, (fill - k * 10) / 10))));
+    });
+
+    const note = card.querySelector('[data-out="note"]');
+    if (res.kind === 'too-deep') {
+      const u = state.depthUnit;
+      const target = trim1(toUnit(rod.depthM));
+      const max = u === 'ft' ? floor1(res.maxFt) : floor1(res.maxFt * FT);
+      const noun = m.sizeNoun.toLowerCase();
+      let html = `<p>${m.sizeNoun} ${rod.size} can't reach ${target} ${u}. It runs ${max} ${u} deep at most, with ${res.maxRow / 10} colors (${res.maxRow} m) out.</p>`;
+      if (res.sug) {
+        const sl = Math.max(1, Math.round(res.sug.line));
+        html += `<button type="button" data-act="size" data-rod="${i}" data-size="${res.sug.size}">Use ${noun} ${res.sug.size}: ${sl} m · ${colorsEn(sl)}</button>`;
+      } else {
+        html += `<p>No ${noun} on this chart runs that deep.</p>`;
+      }
+      note.innerHTML = html;
+      note.hidden = false;
+    } else if (res.kind === 'too-long') {
+      note.innerHTML = `<p>This chart stops at ${res.maxRow} m (${res.maxRow / 10} colors). Enter ${res.maxRow} m or less to get a depth.</p>`;
+      note.hidden = false;
+    } else {
+      note.hidden = true;
+      note.innerHTML = '';
+    }
+  }
+
+  function renderRods() {
+    const m = METHODS[state.tab];
+    const rods = state.rods[state.tab];
+    ui.rods.innerHTML = rods.map((r, i) => rodHTML(m, r, i, rods.length)).join('');
+    rods.forEach((r, i) => updateRod(i, false));
+    ui.add.hidden = rods.length >= MAX_RODS;
+  }
+
+  function renderAll() { renderTabs(); renderMethod(); renderUnits(); renderRods(); }
+
+  // Tabs
+  ui.tabs.addEventListener('click', e => {
+    const b = e.target.closest('[role="tab"]');
+    if (!b || b.dataset.tab === state.tab) return;
+    state.tab = b.dataset.tab;
+    save();
+    renderAll();
+  });
+  ui.tabs.addEventListener('keydown', e => {
+    if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+    e.preventDefault();
+    const idx = ORDER.indexOf(state.tab);
+    state.tab = ORDER[(idx + (e.key === 'ArrowRight' ? 1 : ORDER.length - 1)) % ORDER.length];
+    save();
+    renderAll();
+    ui.tabs.querySelector(`[data-tab="${state.tab}"]`).focus();
+  });
+
+  // Unit toggles
+  ui.units.addEventListener('click', e => {
+    const b = e.target.closest('button[data-unit]');
+    if (!b) return;
+    const parts = b.dataset.unit.split(':');
+    if (parts[0] === 'line') state.lineUnit = parts[1]; else state.depthUnit = parts[1];
+    save();
+    renderUnits();
+    renderRods();
+  });
+
+  // Board/lead chips, suggestion button, remove rod
+  ui.rods.addEventListener('click', e => {
+    const b = e.target.closest('button[data-act]');
+    if (!b) return;
+    const i = Number(b.dataset.rod);
+    const rods = state.rods[state.tab];
+    if (!rods[i]) return;
+    if (b.dataset.act === 'size') {
+      rods[i].size = Number(b.dataset.size);
+      const card = b.closest('.rod');
+      const fromNote = !b.classList.contains('chip');
+      card.querySelectorAll('.chip').forEach(c =>
+        c.setAttribute('aria-pressed', Number(c.dataset.size) === rods[i].size ? 'true' : 'false'));
+      updateRod(i, false);
+      save();
+      if (fromNote) {
+        const chip = card.querySelector(`.chip[data-size="${rods[i].size}"]`);
+        if (chip) chip.focus();
+      }
+    } else if (b.dataset.act === 'remove') {
+      rods.splice(i, 1);
+      save();
+      renderRods();
+      const cards = ui.rods.querySelectorAll('.rod');
+      const next = cards[Math.min(i, cards.length - 1)];
+      const target = next && next.querySelector('.chip[aria-pressed="true"]');
+      if (target) target.focus();
+    }
+  });
+
+  // Typing in either box
+  ui.rods.addEventListener('input', e => {
+    const inp = e.target;
+    if (!inp.matches || !inp.matches('input[data-in]')) return;
+    const i = Number(inp.dataset.rod);
+    const rod = state.rods[state.tab][i];
+    if (!rod) return;
+    const card = inp.closest('.rod');
+    const kind = inp.dataset.in;
+    if (kind === 'd') {
+      const v = parseNum(inp.value);
+      rod.driver = 'depth';
+      rod.depthM = v == null ? null : fromUnit(v);
+    } else {
+      rod.driver = 'line';
+      if (kind === 'lm') {
+        rod.lineM = parseNum(inp.value);
+      } else {
+        const c = parseNum(card.querySelector('[data-in="lc"]').value);
+        const x = parseNum(card.querySelector('[data-in="le"]').value);
+        rod.lineM = c == null && x == null ? null : (c || 0) * 10 + (x || 0);
+      }
+    }
+    updateRod(i, true);
+    save();
+  });
+  ui.rods.addEventListener('focusin', e => {
+    const t = e.target;
+    if (t.matches && t.matches('input[data-in]') && t.value) {
+      setTimeout(() => { try { t.setSelectionRange(0, t.value.length); } catch (err) { /* not selectable */ } }, 0);
+    }
+  });
+  ui.rods.addEventListener('focusout', e => {
+    const t = e.target;
+    if (t.matches && t.matches('input[data-in]')) updateRod(Number(t.dataset.rod), false);
+  });
+  ui.rods.addEventListener('keydown', e => {
+    if (e.key === 'Enter' && e.target.matches && e.target.matches('input[data-in]')) {
+      e.preventDefault();
+      e.target.blur();
+    }
+  });
+
+  // Add rod: copies the last rod so it opens with an answer
+  ui.add.addEventListener('click', () => {
+    const rods = state.rods[state.tab];
+    if (rods.length >= MAX_RODS) return;
+    const last = rods[rods.length - 1];
+    rods.push(last
+      ? { size: last.size, driver: last.driver, depthM: last.depthM, lineM: last.lineM }
+      : { size: METHODS[state.tab].sizes[0], driver: 'depth', depthM: null, lineM: null });
+    save();
+    renderRods();
+    const card = ui.rods.lastElementChild;
+    if (card) card.scrollIntoView({ block: 'nearest', behavior: reduceMotion ? 'auto' : 'smooth' });
+  });
+
+  // Light / dark switch for bright sun
+  const root = document.documentElement;
+  const lightQuery = window.matchMedia ? window.matchMedia('(prefers-color-scheme: light)') : null;
+  function activeTheme() {
+    const t = root.getAttribute('data-theme');
+    if (t === 'light' || t === 'dark') return t;
+    return lightQuery && lightQuery.matches ? 'light' : 'dark';
+  }
+  function paintThemeButton() {
+    const dark = activeTheme() === 'dark';
+    ui.theme.innerHTML = dark ? ICON.sun : ICON.moon;
+    ui.theme.setAttribute('aria-label', dark ? 'Switch to light mode' : 'Switch to dark mode');
+    const tc = document.querySelector('meta[name="theme-color"]');
+    if (tc) tc.setAttribute('content', dark ? '#0A1116' : '#ECF1F4');
+  }
+  try {
+    const t = localStorage.getItem(THEME_KEY);
+    if (t === 'light' || t === 'dark') root.setAttribute('data-theme', t);
+  } catch (e) { /* storage blocked */ }
+  ui.theme.addEventListener('click', () => {
+    const next = activeTheme() === 'dark' ? 'light' : 'dark';
+    root.setAttribute('data-theme', next);
+    try { localStorage.setItem(THEME_KEY, next); } catch (e) { /* storage blocked */ }
+    paintThemeButton();
+  });
+  if (lightQuery && lightQuery.addEventListener) lightQuery.addEventListener('change', paintThemeButton);
+  if (window.MutationObserver) {
+    new MutationObserver(paintThemeButton).observe(root, { attributes: true, attributeFilter: ['data-theme'] });
+  }
+
+  renderAll();
+  paintThemeButton();
+})();
+</script>
+<script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => { navigator.serviceWorker.register('./sw.js').catch(() => {}); });
+  }
+</script>
+</body>
+</html>
